@@ -1,14 +1,13 @@
 using System.Diagnostics;
 using System.IO;
-using System.Windows;
-using System.Windows.Media;
-using Microsoft.Win32;
 using StemSplitter.Models;
 using StemSplitter.Services;
+using WinForms = System.Windows.Forms;
+using WpfControls = System.Windows.Controls;
 
 namespace StemSplitter.GUI;
 
-public partial class MainWindow : Window
+public partial class MainWindow : System.Windows.Window
 {
     private readonly AudioProcessor _audioProcessor;
     private readonly StemSeparator _stemSeparator;
@@ -41,13 +40,13 @@ public partial class MainWindow : Window
             AppendLog("⚠ Demucs not found. Please install it:");
             AppendLog("  pip install demucs");
             StatusText.Text = "Demucs not installed";
-            StatusText.Foreground = (SolidColorBrush)FindResource("ErrorBrush");
+            StatusText.Foreground = (System.Windows.Media.SolidColorBrush)FindResource("ErrorBrush");
         }
     }
 
-    private void BrowseButton_Click(object sender, RoutedEventArgs e)
+    private void BrowseButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog
+        var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Title = "Select Audio File",
             Filter = "Audio Files|*.mp3;*.wav;*.flac;*.ogg;*.m4a;*.aac|MP3 Files|*.mp3|WAV Files|*.wav|All Files|*.*",
@@ -60,7 +59,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ClearButton_Click(object sender, RoutedEventArgs e)
+    private void ClearButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         ClearSelection();
     }
@@ -69,11 +68,11 @@ public partial class MainWindow : Window
     {
         _inputFilePath = null;
         InputFileText.Text = "Drag and drop audio file here or click Browse...";
-        InputFileText.Foreground = (SolidColorBrush)FindResource("TextSecondaryBrush");
-        AudioInfoPanel.Visibility = Visibility.Collapsed;
+        InputFileText.Foreground = (System.Windows.Media.SolidColorBrush)FindResource("TextSecondaryBrush");
+        AudioInfoPanel.Visibility = System.Windows.Visibility.Collapsed;
         SeparateButton.IsEnabled = false;
         StatusText.Text = "Ready";
-        StatusText.Foreground = (SolidColorBrush)FindResource("TextSecondaryBrush");
+        StatusText.Foreground = (System.Windows.Media.SolidColorBrush)FindResource("TextSecondaryBrush");
     }
 
     private void LoadAudioFile(string filePath)
@@ -82,24 +81,24 @@ public partial class MainWindow : Window
 
         if (!SupportedExtensions.Contains(extension))
         {
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 $"Unsupported file format: {extension}\n\nSupported formats: MP3, WAV, FLAC, OGG, M4A, AAC",
                 "Unsupported Format",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
             return;
         }
 
         _inputFilePath = filePath;
         InputFileText.Text = filePath;
-        InputFileText.Foreground = (SolidColorBrush)FindResource("TextBrush");
+        InputFileText.Foreground = (System.Windows.Media.SolidColorBrush)FindResource("TextBrush");
 
         // Load audio info
         var info = _audioProcessor.GetAudioInfo(filePath);
 
         if (string.IsNullOrEmpty(info.Error))
         {
-            AudioInfoPanel.Visibility = Visibility.Visible;
+            AudioInfoPanel.Visibility = System.Windows.Visibility.Visible;
             DurationText.Text = info.Duration.ToString(@"mm\:ss");
             SampleRateText.Text = $"{info.SampleRate} Hz";
             ChannelsText.Text = info.Channels == 2 ? "Stereo" : info.Channels == 1 ? "Mono" : $"{info.Channels}ch";
@@ -110,31 +109,31 @@ public partial class MainWindow : Window
         }
         else
         {
-            AudioInfoPanel.Visibility = Visibility.Collapsed;
+            AudioInfoPanel.Visibility = System.Windows.Visibility.Collapsed;
             AppendLog($"Warning: Could not read audio info - {info.Error}");
         }
 
         SeparateButton.IsEnabled = true;
         StatusText.Text = "Ready to separate";
-        StatusText.Foreground = (SolidColorBrush)FindResource("TextBrush");
+        StatusText.Foreground = (System.Windows.Media.SolidColorBrush)FindResource("TextBrush");
     }
 
-    private void OutputFolderButton_Click(object sender, RoutedEventArgs e)
+    private void OutputFolderButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
-        var dialog = new System.Windows.Forms.FolderBrowserDialog
+        var dialog = new WinForms.FolderBrowserDialog
         {
             Description = "Select Output Folder",
             UseDescriptionForTitle = true
         };
 
-        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        if (dialog.ShowDialog() == WinForms.DialogResult.OK)
         {
             _outputDirectory = dialog.SelectedPath;
             OutputFolderText.Text = dialog.SelectedPath;
         }
     }
 
-    private async void SeparateButton_Click(object sender, RoutedEventArgs e)
+    private async void SeparateButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         if (string.IsNullOrEmpty(_inputFilePath) || _isProcessing)
             return;
@@ -142,9 +141,9 @@ public partial class MainWindow : Window
         _isProcessing = true;
         SetUIEnabled(false);
 
-        var model = ((System.Windows.Controls.ComboBoxItem)ModelComboBox.SelectedItem).Tag?.ToString() ?? "htdemucs_6s";
-        var format = ((System.Windows.Controls.ComboBoxItem)FormatComboBox.SelectedItem).Tag?.ToString() ?? "wav";
-        var shifts = int.Parse(((System.Windows.Controls.ComboBoxItem)ShiftsComboBox.SelectedItem).Tag?.ToString() ?? "1");
+        var model = ((WpfControls.ComboBoxItem)ModelComboBox.SelectedItem).Tag?.ToString() ?? "htdemucs_6s";
+        var format = ((WpfControls.ComboBoxItem)FormatComboBox.SelectedItem).Tag?.ToString() ?? "wav";
+        var shifts = int.Parse(((WpfControls.ComboBoxItem)ShiftsComboBox.SelectedItem).Tag?.ToString() ?? "1");
         var cpuOnly = CpuOnlyCheckBox.IsChecked == true;
 
         var options = new SeparationOptions
@@ -165,7 +164,7 @@ public partial class MainWindow : Window
 
         ProgressBar.IsIndeterminate = true;
         StatusText.Text = "Separating...";
-        StatusText.Foreground = (SolidColorBrush)FindResource("PrimaryBrush");
+        StatusText.Foreground = (System.Windows.Media.SolidColorBrush)FindResource("PrimaryBrush");
 
         var progress = new Progress<string>(msg =>
         {
@@ -207,15 +206,15 @@ public partial class MainWindow : Window
                 }
 
                 StatusText.Text = $"Complete! {result.StemFiles.Count} stems extracted";
-                StatusText.Foreground = (SolidColorBrush)FindResource("SuccessBrush");
+                StatusText.Foreground = (System.Windows.Media.SolidColorBrush)FindResource("SuccessBrush");
 
-                OpenOutputButton.Visibility = Visibility.Visible;
+                OpenOutputButton.Visibility = System.Windows.Visibility.Visible;
 
-                MessageBox.Show(
+                System.Windows.MessageBox.Show(
                     $"Successfully extracted {result.StemFiles.Count} stems!\n\nOutput: {result.OutputDirectory}",
                     "Separation Complete",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
             }
             else
             {
@@ -224,13 +223,13 @@ public partial class MainWindow : Window
                 AppendLog($"✗ Error: {result.ErrorMessage}");
 
                 StatusText.Text = "Failed";
-                StatusText.Foreground = (SolidColorBrush)FindResource("ErrorBrush");
+                StatusText.Foreground = (System.Windows.Media.SolidColorBrush)FindResource("ErrorBrush");
 
-                MessageBox.Show(
+                System.Windows.MessageBox.Show(
                     $"Separation failed:\n\n{result.ErrorMessage}",
                     "Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
             }
         }
         catch (Exception ex)
@@ -240,13 +239,13 @@ public partial class MainWindow : Window
             AppendLog($"✗ Exception: {ex.Message}");
 
             StatusText.Text = "Error occurred";
-            StatusText.Foreground = (SolidColorBrush)FindResource("ErrorBrush");
+            StatusText.Foreground = (System.Windows.Media.SolidColorBrush)FindResource("ErrorBrush");
 
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 $"An error occurred:\n\n{ex.Message}",
                 "Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Error);
         }
         finally
         {
@@ -255,7 +254,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OpenOutputButton_Click(object sender, RoutedEventArgs e)
+    private void OpenOutputButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         if (!string.IsNullOrEmpty(_lastOutputDirectory) && Directory.Exists(_lastOutputDirectory))
         {
@@ -289,34 +288,35 @@ public partial class MainWindow : Window
         });
     }
 
-    private void Window_DragOver(object sender, DragEventArgs e)
+    private void Window_DragOver(object sender, System.Windows.DragEventArgs e)
     {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop))
         {
-            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            var files = (string[])e.Data.GetData(System.Windows.DataFormats.FileDrop);
             if (files?.Length > 0)
             {
                 var ext = Path.GetExtension(files[0]).ToLowerInvariant();
                 if (SupportedExtensions.Contains(ext))
                 {
-                    e.Effects = DragDropEffects.Copy;
-                    DropZone.BorderBrush = (SolidColorBrush)FindResource("PrimaryBrush");
+                    e.Effects = System.Windows.DragDropEffects.Copy;
+                    DropZone.BorderBrush = (System.Windows.Media.SolidColorBrush)FindResource("PrimaryBrush");
                     return;
                 }
             }
         }
 
-        e.Effects = DragDropEffects.None;
+        e.Effects = System.Windows.DragDropEffects.None;
         e.Handled = true;
     }
 
-    private void Window_Drop(object sender, DragEventArgs e)
+    private void Window_Drop(object sender, System.Windows.DragEventArgs e)
     {
-        DropZone.BorderBrush = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
+        DropZone.BorderBrush = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(0x40, 0x40, 0x40));
 
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop))
         {
-            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            var files = (string[])e.Data.GetData(System.Windows.DataFormats.FileDrop);
             if (files?.Length > 0)
             {
                 LoadAudioFile(files[0]);

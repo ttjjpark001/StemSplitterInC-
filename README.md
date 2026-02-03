@@ -21,11 +21,13 @@ Download from: https://dotnet.microsoft.com/download/dotnet/8.0
 Download from: https://www.python.org/downloads/
 
 ### 3. ffmpeg
-Download ffmpeg-release-essentials.7z from https://www.gyan.dev/ffmpeg/builds/
+Download ffmpeg-release-essentials.7z from https://www.gyan.dev/ffmpeg/builds/.
 Extract the archive and add the bin folder path to system environment variable 'Path'
 
 ### 4. SoundFile Library
+```bash
 pip install soundfile
+```
 
 ### 5. Demucs (Facebook's audio source separation)
 

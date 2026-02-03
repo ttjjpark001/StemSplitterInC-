@@ -1,14 +1,16 @@
 # StemSplitter
 
-A C# command-line tool for extracting individual instrument stems from audio files (MP3, WAV, FLAC, etc.).
+A C# application for extracting individual instrument stems from audio files (MP3, WAV, FLAC, etc.). Available as both a command-line tool and a graphical user interface.
 
 ## Features
 
+- **GUI Application** - Easy-to-use Windows interface with drag-and-drop support
+- **Command-Line Tool** - For automation and scripting
 - Extract stems: **Drums**, **Bass**, **Guitar**, **Piano**, **Vocals**, and **Other**
 - Supports input formats: MP3, WAV, FLAC, OGG, M4A, AAC
 - Output formats: WAV or MP3
 - GPU acceleration support (NVIDIA CUDA)
-- Progress reporting during separation
+- Real-time progress reporting
 
 ## Prerequisites
 
@@ -33,11 +35,33 @@ pip install demucs torch torchvision torchaudio --index-url https://download.pyt
 ## Building
 
 ```bash
-cd StemSplitter
-dotnet build
+# Build entire solution (CLI + GUI)
+dotnet build StemSplitter.sln
+
+# Or build projects individually
+dotnet build StemSplitter/StemSplitter.csproj        # CLI only
+dotnet build StemSplitter.GUI/StemSplitter.GUI.csproj  # GUI only
 ```
 
-## Usage
+## GUI Application
+
+The GUI provides an easy-to-use interface for stem separation:
+
+1. **Launch**: Run `StemSplitter.GUI.exe` or `dotnet run --project StemSplitter.GUI`
+2. **Select File**: Click "Browse" or drag-and-drop an audio file
+3. **Configure Options**: Choose model, output format, and quality settings
+4. **Separate**: Click "Separate Stems" and wait for processing
+5. **View Results**: Click "Open Output Folder" to see the extracted stems
+
+### GUI Features
+- Drag-and-drop file support
+- Audio file information display (duration, sample rate, channels)
+- Model selection (4-stem or 6-stem)
+- Quality/speed tradeoff options
+- Real-time progress display
+- Output folder customization
+
+## Command-Line Usage
 
 ### Basic Usage
 

@@ -88,12 +88,50 @@
                 </Style.Triggers>
             </Style>
 
+            <!-- ComboBoxItem Style -->
+            <Style TargetType="ComboBoxItem">
+                <Setter Property="Background" Value="#3D3D3D"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+                <Setter Property="Padding" Value="10,8"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBoxItem">
+                            <Border Background="{TemplateBinding Background}"
+                                    Padding="{TemplateBinding Padding}"
+                                    BorderThickness="0">
+                                <ContentPresenter/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsHighlighted" Value="True">
+                        <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                    </Trigger>
+                    <Trigger Property="IsSelected" Value="True">
+                        <Setter Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
+                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                    </Trigger>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#505050"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
             <!-- ComboBox Style -->
             <Style TargetType="ComboBox">
-                <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
-                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                <Setter Property="BorderBrush" Value="#404040"/>
+                <Setter Property="Background" Value="#3D3D3D"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+                <Setter Property="BorderBrush" Value="#606060"/>
+                <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Padding" Value="10,8"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Style.Resources>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#3D3D3D"/>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="{StaticResource PrimaryColor}"/>
+                </Style.Resources>
             </Style>
 
             <!-- CheckBox Style -->

@@ -240,7 +240,7 @@ public class StemSeparator
                             // If we moved to a new stem, report completion of previous
                             if (currentStem != null && stemName != currentStem && currentStemIndex < estimatedStemIndex)
                             {
-                                progress?.Report(StemProgress.StemComplete(currentStem, currentStemIndex, totalStems));
+                                progress?.Report(StemProgress.StemComplete(currentStem, currentStemIndex + 1, totalStems));
                             }
 
                             currentStem = stemName;
@@ -272,7 +272,7 @@ public class StemSeparator
         // Mark final stem as complete
         if (currentStem != null)
         {
-            progress?.Report(StemProgress.StemComplete(currentStem, currentStemIndex, totalStems));
+            progress?.Report(StemProgress.StemComplete(currentStem, currentStemIndex + 1, totalStems));
         }
 
         return new ProcessResult

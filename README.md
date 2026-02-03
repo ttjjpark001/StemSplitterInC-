@@ -20,7 +20,14 @@ Download from: https://dotnet.microsoft.com/download/dotnet/8.0
 ### 2. Python 3.8+
 Download from: https://www.python.org/downloads/
 
-### 3. Demucs (Facebook's audio source separation)
+### 3. ffmpeg
+Download ffmpeg-release-essentials.7z from https://www.gyan.dev/ffmpeg/builds/
+Extract the archive and add the bin folder path to system environment variable 'Path'
+
+### 4. SoundFile Library
+pip install soundfile
+
+### 5. Demucs (Facebook's audio source separation)
 
 **For CPU only (slower):**
 ```bash

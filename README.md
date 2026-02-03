@@ -118,18 +118,16 @@ dotnet run -- install
 
 ## Output
 
-Stems are saved to: `[output_dir]/stems/[track_name]/`
+Stems are saved in the same folder as the input file (or the specified output directory).
 
-Example output files:
+Example: If you process `mysong.mp3`, the output files will be:
 ```
-stems/
-  mysong/
-    mysong_Drums.wav
-    mysong_Bass.wav
-    mysong_Vocals.wav
-    mysong_ElectricGuitar.wav
-    mysong_Piano.wav
-    mysong_Other.wav
+mysong_drums.wav
+mysong_bass.wav
+mysong_vocals.wav
+mysong_guitar.wav
+mysong_piano.wav
+mysong_other.wav
 ```
 
 ## Notes on Stem Types

@@ -157,6 +157,7 @@ public partial class MainWindow : System.Windows.Window
         };
 
         LogText.Text = string.Empty;
+        _lastWasProgress = false;
         AppendLog($"Starting separation with model: {model}");
         AppendLog($"Output format: {format.ToUpper()}, Shifts: {shifts}, CPU Only: {cpuOnly}");
         AppendLog("This may take several minutes...");
@@ -276,14 +277,39 @@ public partial class MainWindow : System.Windows.Window
         CpuOnlyCheckBox.IsEnabled = enabled;
     }
 
+    private bool _lastWasProgress = false;
+
     private void AppendLog(string message)
     {
         Dispatcher.Invoke(() =>
         {
-            if (!string.IsNullOrEmpty(LogText.Text))
-                LogText.Text += "\n";
+            // Check if this is a progress message (contains percentage)
+            bool isProgress = message.Contains("%") &&
+                              System.Text.RegularExpressions.Regex.IsMatch(message, @"\d+%");
 
-            LogText.Text += message;
+            if (isProgress && _lastWasProgress && !string.IsNullOrEmpty(LogText.Text))
+            {
+                // Replace the last line with the new progress
+                var lastNewLine = LogText.Text.LastIndexOf('\n');
+                if (lastNewLine >= 0)
+                {
+                    LogText.Text = LogText.Text.Substring(0, lastNewLine + 1) + message;
+                }
+                else
+                {
+                    LogText.Text = message;
+                }
+            }
+            else
+            {
+                // Append as a new line
+                if (!string.IsNullOrEmpty(LogText.Text))
+                    LogText.Text += "\n";
+
+                LogText.Text += message;
+            }
+
+            _lastWasProgress = isProgress;
             LogScrollViewer.ScrollToEnd();
         });
     }

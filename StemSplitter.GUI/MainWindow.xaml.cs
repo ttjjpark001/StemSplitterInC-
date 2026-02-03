@@ -164,22 +164,41 @@ public partial class MainWindow : System.Windows.Window
         AppendLog(new string('─', 50));
 
         ProgressBar.IsIndeterminate = true;
+        ProgressBar.Value = 0;
+        StemProgressBar.Value = 0;
+        OverallPercentText.Text = "0%";
+        StemPercentText.Text = "";
+        CurrentStemLabel.Text = "Preparing...";
         StatusText.Text = "Separating...";
         StatusText.Foreground = (System.Windows.Media.SolidColorBrush)FindResource("PrimaryBrush");
 
-        var progress = new Progress<string>(msg =>
+        var progress = new Progress<StemProgress>(p =>
         {
-            AppendLog(msg);
-
-            // Try to parse progress percentage from Demucs output
-            if (msg.Contains("%"))
+            switch (p.Type)
             {
-                var percentMatch = System.Text.RegularExpressions.Regex.Match(msg, @"(\d+)%");
-                if (percentMatch.Success && int.TryParse(percentMatch.Groups[1].Value, out var percent))
-                {
+                case StemProgressType.Info:
+                    AppendLog(p.Message);
+                    break;
+
+                case StemProgressType.OverallProgress:
                     ProgressBar.IsIndeterminate = false;
-                    ProgressBar.Value = percent;
-                }
+                    ProgressBar.Value = p.OverallPercent;
+                    OverallPercentText.Text = $"{p.OverallPercent}%";
+                    break;
+
+                case StemProgressType.StemProgress:
+                    CurrentStemLabel.Text = $"{p.CurrentStem}:";
+                    StemProgressBar.Value = p.StemPercent;
+                    StemPercentText.Text = $"{p.StemPercent}%";
+                    StatusText.Text = $"Processing {p.CurrentStem} ({p.StemIndex}/{p.TotalStems})...";
+                    break;
+
+                case StemProgressType.StemComplete:
+                    CurrentStemLabel.Text = $"{p.CurrentStem}:";
+                    StemProgressBar.Value = 100;
+                    StemPercentText.Text = "✓";
+                    AppendLog($"  ✓ {p.CurrentStem} complete ({p.StemIndex}/{p.TotalStems})");
+                    break;
             }
         });
 
@@ -192,6 +211,10 @@ public partial class MainWindow : System.Windows.Window
             if (result.Success)
             {
                 ProgressBar.Value = 100;
+                OverallPercentText.Text = "100%";
+                StemProgressBar.Value = 100;
+                StemPercentText.Text = "✓";
+                CurrentStemLabel.Text = "Complete!";
                 _lastOutputDirectory = result.OutputDirectory;
 
                 AppendLog(new string('─', 50));
@@ -220,6 +243,10 @@ public partial class MainWindow : System.Windows.Window
             else
             {
                 ProgressBar.Value = 0;
+                StemProgressBar.Value = 0;
+                OverallPercentText.Text = "0%";
+                StemPercentText.Text = "";
+                CurrentStemLabel.Text = "Failed";
                 AppendLog(new string('─', 50));
                 AppendLog($"✗ Error: {result.ErrorMessage}");
 
@@ -237,6 +264,10 @@ public partial class MainWindow : System.Windows.Window
         {
             ProgressBar.IsIndeterminate = false;
             ProgressBar.Value = 0;
+            StemProgressBar.Value = 0;
+            OverallPercentText.Text = "0%";
+            StemPercentText.Text = "";
+            CurrentStemLabel.Text = "Error";
             AppendLog($"✗ Exception: {ex.Message}");
 
             StatusText.Text = "Error occurred";

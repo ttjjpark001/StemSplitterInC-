@@ -52,9 +52,9 @@ public class StemSeparator
     }
 
     /// <summary>
-    /// Separates audio into individual stems.
+    /// Separates audio into individual stems with detailed progress reporting.
     /// </summary>
-    public async Task<SeparationResult> SeparateAsync(SeparationOptions options, IProgress<string>? progress = null)
+    public async Task<SeparationResult> SeparateAsync(SeparationOptions options, IProgress<StemProgress>? progress = null)
     {
         var stopwatch = Stopwatch.StartNew();
 
@@ -64,7 +64,7 @@ public class StemSeparator
             return SeparationResult.Failed(error!);
 
         // Check Demucs installation
-        progress?.Report("Checking Demucs installation...");
+        progress?.Report(StemProgress.Info("Checking Demucs installation..."));
         var (isInstalled, version) = await CheckDemucsInstallationAsync();
         if (!isInstalled)
         {
@@ -75,7 +75,7 @@ public class StemSeparator
                 "  pip install demucs torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118");
         }
 
-        progress?.Report($"Using Demucs {version ?? "unknown version"}");
+        progress?.Report(StemProgress.Info($"Using Demucs {version ?? "unknown version"}"));
 
         // Prepare output directory - same as input file location
         var finalOutputDir = options.OutputDirectory ?? Path.GetDirectoryName(options.InputFile) ?? ".";
@@ -85,14 +85,17 @@ public class StemSeparator
         var tempOutputDir = Path.Combine(Path.GetTempPath(), "StemSplitter", Guid.NewGuid().ToString());
         Directory.CreateDirectory(tempOutputDir);
 
+        // Determine expected stems based on model
+        var expectedStems = GetExpectedStems(options.Model);
+
         // Build Demucs command
         var args = BuildDemucsArguments(options, tempOutputDir);
 
-        progress?.Report($"Starting separation with model: {options.Model}");
-        progress?.Report("This may take several minutes depending on the audio length and your hardware...");
+        progress?.Report(StemProgress.Info($"Starting separation with model: {options.Model}"));
+        progress?.Report(StemProgress.Info($"Extracting {expectedStems.Count} stems: {string.Join(", ", expectedStems)}"));
 
-        // Run Demucs
-        var result = await RunDemucsAsync(args, progress);
+        // Run Demucs with progress parsing
+        var result = await RunDemucsWithProgressAsync(args, expectedStems, progress);
 
         if (result.ExitCode != 0)
         {
@@ -111,17 +114,43 @@ public class StemSeparator
             return SeparationResult.Failed("No stem files were generated. Check the output directory.");
         }
 
+        progress?.Report(StemProgress.Info("Saving stem files..."));
+
         // Post-process: Copy/rename files to final location with standardized names
-        var finalStems = await PostProcessStemsAsync(stems, finalOutputDir, trackName, progress);
+        var finalStems = await PostProcessStemsWithProgressAsync(stems, finalOutputDir, trackName, progress);
 
         // Clean up temp directory
         try { Directory.Delete(tempOutputDir, true); } catch { }
 
         stopwatch.Stop();
 
-        progress?.Report($"Separation complete! {finalStems.Count} stems extracted.");
+        progress?.Report(StemProgress.Info($"Separation complete! {finalStems.Count} stems extracted."));
 
         return SeparationResult.Succeeded(finalOutputDir, finalStems, stopwatch.Elapsed);
+    }
+
+    /// <summary>
+    /// Separates audio into individual stems (simple string progress).
+    /// </summary>
+    public async Task<SeparationResult> SeparateAsync(SeparationOptions options, IProgress<string>? progress)
+    {
+        // Wrap string progress in StemProgress
+        IProgress<StemProgress>? stemProgress = null;
+        if (progress != null)
+        {
+            stemProgress = new Progress<StemProgress>(p => progress.Report(p.Message));
+        }
+        return await SeparateAsync(options, stemProgress);
+    }
+
+    private static List<string> GetExpectedStems(string model)
+    {
+        return model.ToLowerInvariant() switch
+        {
+            "htdemucs_6s" => new List<string> { "drums", "bass", "vocals", "guitar", "piano", "other" },
+            "htdemucs" or "htdemucs_ft" => new List<string> { "drums", "bass", "vocals", "other" },
+            _ => new List<string> { "drums", "bass", "vocals", "other" }
+        };
     }
 
     private string BuildDemucsArguments(SeparationOptions options, string outputDir)
@@ -156,7 +185,7 @@ public class StemSeparator
         return args.ToString();
     }
 
-    private async Task<ProcessResult> RunDemucsAsync(string arguments, IProgress<string>? progress)
+    private async Task<ProcessResult> RunDemucsWithProgressAsync(string arguments, List<string> expectedStems, IProgress<StemProgress>? progress)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -172,13 +201,15 @@ public class StemSeparator
 
         var output = new StringBuilder();
         var error = new StringBuilder();
+        var totalStems = expectedStems.Count;
+        var currentStemIndex = 0;
+        string? currentStem = null;
 
         process.OutputDataReceived += (_, e) =>
         {
             if (!string.IsNullOrEmpty(e.Data))
             {
                 output.AppendLine(e.Data);
-                progress?.Report(e.Data);
             }
         };
 
@@ -187,9 +218,48 @@ public class StemSeparator
             if (!string.IsNullOrEmpty(e.Data))
             {
                 error.AppendLine(e.Data);
-                // Demucs outputs progress to stderr
-                if (e.Data.Contains("%") || e.Data.Contains("Separating"))
-                    progress?.Report(e.Data);
+
+                // Parse Demucs progress output
+                // Demucs outputs progress like: "100%|██████████| 150/150 [00:30<00:00]"
+                if (e.Data.Contains("%"))
+                {
+                    var percentMatch = System.Text.RegularExpressions.Regex.Match(e.Data, @"(\d+)%");
+                    if (percentMatch.Success && int.TryParse(percentMatch.Groups[1].Value, out var percent))
+                    {
+                        // Calculate which stem we're on based on overall progress
+                        var overallProgress = percent;
+                        var stemProgress = percent % 100;
+
+                        // Estimate current stem based on progress chunks
+                        var estimatedStemIndex = Math.Min((int)(overallProgress / (100.0 / totalStems)), totalStems - 1);
+
+                        if (estimatedStemIndex >= 0 && estimatedStemIndex < expectedStems.Count)
+                        {
+                            var stemName = expectedStems[estimatedStemIndex];
+
+                            // If we moved to a new stem, report completion of previous
+                            if (currentStem != null && stemName != currentStem && currentStemIndex < estimatedStemIndex)
+                            {
+                                progress?.Report(StemProgress.StemComplete(currentStem, currentStemIndex, totalStems));
+                            }
+
+                            currentStem = stemName;
+                            currentStemIndex = estimatedStemIndex;
+
+                            // Calculate stem-specific progress
+                            var stemPercent = (int)((overallProgress - (estimatedStemIndex * (100.0 / totalStems))) / (100.0 / totalStems) * 100);
+                            stemPercent = Math.Clamp(stemPercent, 0, 100);
+
+                            progress?.Report(StemProgress.Stem(stemName, estimatedStemIndex + 1, totalStems, stemPercent));
+                        }
+
+                        progress?.Report(StemProgress.Overall(percent, $"Overall: {percent}%"));
+                    }
+                }
+                else if (e.Data.Contains("Separating"))
+                {
+                    progress?.Report(StemProgress.Info(e.Data));
+                }
             }
         };
 
@@ -198,6 +268,12 @@ public class StemSeparator
         process.BeginErrorReadLine();
 
         await process.WaitForExitAsync();
+
+        // Mark final stem as complete
+        if (currentStem != null)
+        {
+            progress?.Report(StemProgress.StemComplete(currentStem, currentStemIndex, totalStems));
+        }
 
         return new ProcessResult
         {
@@ -287,6 +363,40 @@ public class StemSeparator
             {
                 progress?.Report($"  Warning: Failed to copy {stemName}: {ex.Message}");
             }
+        }
+
+        return finalStems;
+    }
+
+    private async Task<Dictionary<StemType, string>> PostProcessStemsWithProgressAsync(
+        Dictionary<string, (StemType Type, string SourcePath)> stems, string outputDir, string trackName, IProgress<StemProgress>? progress)
+    {
+        var finalStems = new Dictionary<StemType, string>();
+        var totalStems = stems.Count;
+        var stemIndex = 0;
+
+        foreach (var (stemName, stemInfo) in stems)
+        {
+            var extension = Path.GetExtension(stemInfo.SourcePath);
+            // Format: originalfilename_stemname.extension
+            var destFileName = $"{trackName}_{stemName}{extension}";
+            var destPath = Path.Combine(outputDir, destFileName);
+
+            progress?.Report(StemProgress.Stem(stemName, stemIndex + 1, totalStems, 50));
+
+            try
+            {
+                await Task.Run(() => File.Copy(stemInfo.SourcePath, destPath, overwrite: true));
+                finalStems[stemInfo.Type] = destPath;
+                progress?.Report(StemProgress.StemComplete(stemName, stemIndex + 1, totalStems));
+                progress?.Report(StemProgress.Info($"  ✓ Saved: {destFileName}"));
+            }
+            catch (Exception ex)
+            {
+                progress?.Report(StemProgress.Info($"  ✗ Warning: Failed to copy {stemName}: {ex.Message}"));
+            }
+
+            stemIndex++;
         }
 
         return finalStems;

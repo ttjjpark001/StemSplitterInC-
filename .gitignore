@@ -1,0 +1,55 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Rider files
+.idea/
+
+# VS Code
+.vscode/
+
+# NuGet packages
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+
+# Installer output
+*.msi
+*.msm
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Audio files (test files)
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.m4a
+*.aac
+
+# Output stems
+stems/
+separated/

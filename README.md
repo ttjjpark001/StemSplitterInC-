@@ -4,32 +4,43 @@ A C# application for extracting individual instrument stems from audio files (MP
 
 ## Features
 
-- **GUI Application** - Easy-to-use Windows interface with drag-and-drop support
-- **Command-Line Tool** - For automation and scripting
+- **GUI Application** - Easy-to-use interface with drag-and-drop support (Windows; macOS support planned)
+- **Command-Line Tool** - For automation and scripting (cross-platform)
 - Extract stems: **Drums**, **Bass**, **Guitar**, **Piano**, **Vocals**, and **Other**
 - Supports input formats: MP3, WAV, FLAC, OGG, M4A, AAC
 - Output formats: WAV or MP3
-- GPU acceleration support (NVIDIA CUDA)
-- Real-time progress reporting
+- GPU acceleration support (NVIDIA CUDA, auto-detected)
+- Real-time progress reporting (overall + per-stem progress bars)
+
+## Implementation Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| CLI (`StemSplitter`) | ✅ Complete | Commands: separate, info, check, install |
+| WPF GUI (`StemSplitter.GUI`) | ✅ Complete | Drag-and-drop, progress bars, log window |
+| Audio info reader | ✅ Complete | NAudio-based |
+| Demucs integration | ✅ Complete | Subprocess execution with stderr progress parsing |
+| Per-stem progress display | ✅ Complete | Both CLI and GUI |
+| MP3 output | ✅ Complete | Via NAudio.Lame |
+| BS-RoFormer/MelBand-RoFormer models + GPU auto-detect | 🔲 Planned | REQ-001 |
+| macOS support (Avalonia UI) | 🔲 Planned | REQ-002 |
+| One-click installer (Windows/macOS) | 🔲 Planned | REQ-003 |
+| Hardware change detection at startup | 🔲 Planned | REQ-004 |
+| Install guide & user manual (ko/en, Win/macOS) | 🔲 Planned | REQ-005 |
 
 ## Prerequisites
 
 ### 1. .NET 8.0 SDK
 Download from: https://dotnet.microsoft.com/download/dotnet/8.0
 
-### 2. Python 3.8+
+### 2. Python 3.11
 Download from: https://www.python.org/downloads/
 
-### 3. ffmpeg
+### 3. ffmpeg (required by Demucs)
 Download ffmpeg-release-essentials.7z from https://www.gyan.dev/ffmpeg/builds/.
 Extract the archive and add the bin folder path to system environment variable 'Path'
 
-### 4. SoundFile Library
-```bash
-pip install soundfile
-```
-
-### 5. Demucs (Facebook's audio source separation)
+### 4. Demucs (Facebook's audio source separation)
 
 **For CPU only (slower):**
 ```bash
@@ -65,7 +76,7 @@ The GUI provides an easy-to-use interface for stem separation:
 ### GUI Features
 - Drag-and-drop file support
 - Audio file information display (duration, sample rate, channels)
-- Model selection (4-stem or 6-stem)
+- Model selection (2-stem, 4-stem, or 6-stem)
 - Quality/speed tradeoff options
 - Real-time progress display
 - Output folder customization
@@ -150,6 +161,13 @@ The standard Demucs models provide these separations:
 - **Other** - Everything else (strings, synths, effects, etc.)
 
 For more specific separations like electric vs acoustic guitar, or extracting strings separately, you would need specialized models or additional processing.
+
+### Additional Models (planned)
+
+| Model | Stems | Description |
+|-------|-------|-------------|
+| `bs_roformer` | 2 (vocals, instrumental) | Band-Split RoFormer — best-in-class vocal separation quality among free open-source models |
+| `melband_roformer` | 2 (vocals, instrumental) | Variant of BS-RoFormer, strong on specific instrument separation |
 
 ## Troubleshooting
 
